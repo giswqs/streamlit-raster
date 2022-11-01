@@ -3,8 +3,76 @@
 """The setup script."""
 
 import io
+import os
+import shutil
+import pkg_resources
 from os import path as op
 from setuptools import setup, find_packages
+
+try:
+    pkg_dir = os.path.dirname(pkg_resources.resource_filename("streamlit", "main.py"))
+    config_path = op.join(pkg_dir, "config.py")
+    config_bk_path = config_path.replace(".py", "_bk.py")
+    server_path = op.join(pkg_dir, "web", "server", "server.py")
+    server_bk_path = server_path.replace(".py", "_bk.py")
+
+    if not op.exists(config_bk_path):
+        shutil.copyfile(config_path, config_bk_path)
+    if not op.exists(server_bk_path):
+        shutil.copyfile(server_path, server_bk_path)
+
+    with open(config_bk_path) as f:
+        lines = f.readlines()
+
+    outlines = []
+    for line in lines:
+        if line.strip() == '@_create_option("server.address")':
+            extra = """
+@_create_option("server.portProxy", type_=bool)
+def _server_port_proxy() -> int:
+    \"""Use jupyter_server_proxy to proxy local ports.
+    Default: False
+    \"""
+    return False    
+"""
+            outlines.append(extra)
+            outlines.append("\n")
+        outlines.append(line)           
+
+
+    with open(config_path, "w") as f:
+        f.writelines(outlines)
+
+    outlines = []
+    with open(server_bk_path) as f:
+        lines = f.readlines()
+
+    for line in lines:
+        if line.lstrip().startswith('return tornado.web.Application'):
+            extra= """
+        if config.get_option("server.portProxy"):
+            try:
+                from jupyter_server_proxy.handlers import LocalProxyHandler
+            except ModuleNotFoundError:
+                LOGGER.error(
+                    "jupyter_server_proxy is not installed. Cannot use `server.portProxy`"
+                )
+            else:
+                routes.extend(
+                    [(make_url_path_regex(base, r"proxy/(\d+)(.*)"), LocalProxyHandler)]
+                )
+            """
+            outlines.append(extra)
+            outlines.append("\n")
+
+        outlines.append(line)
+
+    with open(server_path, "w") as f:
+        f.writelines(outlines)
+
+except Exception as e:
+    raise Exception(e)
+
 
 with open('README.md') as readme_file:
     readme = readme_file.read()
@@ -37,6 +105,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
     ],
     description="Python Boilerplate contains all the boilerplate you need to create a Python package.",
     install_requires=install_requires,
