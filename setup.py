@@ -3,7 +3,6 @@
 """The setup script."""
 
 import io
-import os
 import shutil
 import pkg_resources
 from os import path as op
@@ -12,7 +11,7 @@ from setuptools import setup, find_packages
 # Adopted from https://github.com/streamlit/streamlit/pull/4677. Credits to Bane Sullivan.
 
 try:
-    pkg_dir = os.path.dirname(pkg_resources.resource_filename("streamlit", "main.py"))
+    pkg_dir = op.dirname(pkg_resources.resource_filename("streamlit", "main.py"))
     config_path = op.join(pkg_dir, "config.py")
     config_bk_path = config_path.replace(".py", "_bk.py")
     server_path = op.join(pkg_dir, "web", "server", "server.py")
