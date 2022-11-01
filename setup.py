@@ -9,6 +9,8 @@ import pkg_resources
 from os import path as op
 from setuptools import setup, find_packages
 
+# Adopted from https://github.com/streamlit/streamlit/pull/4677. Credits to Bane Sullivan.
+
 try:
     pkg_dir = os.path.dirname(pkg_resources.resource_filename("streamlit", "main.py"))
     config_path = op.join(pkg_dir, "config.py")
